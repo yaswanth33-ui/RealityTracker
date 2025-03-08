@@ -31,14 +31,15 @@ def render_savings_calculator():
         years = st.number_input("Time Frame (Years)", min_value=0.1, max_value=50.0, value=1.0, step=0.5)
         interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, max_value=30.0, value=2.0, step=0.1)
     
-    months = int(years * 12)
-    monthly_savings = calculate_monthly_savings(target_amount, current_savings, months, interest_rate)
-    
-    if monthly_savings <= 0:
-        st.warning("Please check your input values. The calculation may not be possible with the current parameters.")
-        return
+    if st.button("Calculate Savings Plan", type="primary"):
+        months = int(years * 12)
+        monthly_savings = calculate_monthly_savings(target_amount, current_savings, months, interest_rate)
         
-    st.markdown("---")
+        if monthly_savings <= 0:
+            st.warning("Please check your input values. The calculation may not be possible with the current parameters.")
+            return
+            
+        st.markdown("---")
     
     # Results display
     col1, col2, col3 = st.columns(3)
