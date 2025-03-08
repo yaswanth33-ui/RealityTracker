@@ -155,7 +155,7 @@ def render_budget(db):
                         db.add_financial_goal(goal_name, goal_amount, goal_date.strftime("%Y-%m-%d"))
                         st.success("Financial goal added successfully!")
                     except Exception as e:
-                        st.error(f"Error adding financial goal: {str(e)}")
+                        st.error(f"Error adding financial goal: {str(e)}"))}")
 
         # Display Financial Goals
         financial_goals = db.get_financial_goals()

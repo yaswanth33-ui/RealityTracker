@@ -271,4 +271,4 @@ def validate_category(name, type, icon, color, description):
     if len(name) > 50:
         st.error("Category name is too long (maximum 50 characters)")
         return False
-    return True
+    return Truerue

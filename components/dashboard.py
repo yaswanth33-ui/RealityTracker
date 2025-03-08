@@ -1,31 +1,33 @@
 import streamlit as st
 import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import pandas as pd
-
-import streamlit as st
 import pandas as pd
 from datetime import datetime
 from components.notifications import check_budget_alerts, render_alerts, check_financial_goal_alerts
 
 def render_dashboard(db):
     st.title("Financial Dashboard")
-    
-    # Show alerts at the top of the dashboard
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        # Combine all alerts
-        budget_alerts = check_budget_alerts(db)
-        goal_alerts = check_financial_goal_alerts(db)
-        all_alerts = budget_alerts + goal_alerts
-        
-        if all_alerts:
-            with st.expander("📢 Notifications", expanded=True):
-                render_alerts(all_alerts)
-    
-    # Summary Cards
+
+    # Check and display alerts
+    budget_alerts = check_budget_alerts(db)
+    goal_alerts = check_financial_goal_alerts(db)
+
+    # Get notification settings
+    settings = db.get_notification_settings()
+    threshold = 80
+    if not settings.empty:
+        threshold = settings.iloc[0]['budget_alert_threshold']
+
+    # Filter alerts based on threshold
+    filtered_budget_alerts = [alert for alert in budget_alerts if alert['percentage'] >= threshold]
+
+    # Render alerts
+    if filtered_budget_alerts or goal_alerts:
+        st.subheader("Notifications")
+        with st.expander("View Alerts", expanded=True):
+            render_alerts(filtered_budget_alerts)
+            render_alerts(goal_alerts)
+
+    # Get summary data
     summary = db.get_summary()
     col1, col2, col3 = st.columns(3)
 
