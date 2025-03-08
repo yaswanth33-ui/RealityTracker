@@ -108,9 +108,9 @@ def render_data_operations(db):
                                 description=row['description'],
                                 tags=row.get('tags', [])
                             )
-                    except Exception as e:
-                        st.error(f"Error importing row: {str(e)}")
-                        continue
+                        except Exception as e:
+                            st.error(f"Error importing row: {str(e)}")
+                            continue
                     
                     st.success(f"Successfully imported {len(data)} transactions!")
                     

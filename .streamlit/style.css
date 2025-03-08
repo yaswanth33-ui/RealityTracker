@@ -26,6 +26,15 @@
     color: #FFC107;
 }
 
+.sidebar .title {
+    color: #FF5733;  /* Highlight color */
+    font-size: 24px; 
+    font-weight: bold; 
+}
+.sidebar .markdown {
+    color: #FFC300; /* optional: change color of the markdown text */
+}
+
 /* Notification styling */
 .stAlert {
     border-radius: 8px;
@@ -57,4 +66,8 @@
     border-left: 6px solid;
     border-image: linear-gradient(to bottom, #FF9800, #4CAF50) 1;
     color: #2E7D32;
+}
+
+h1 {
+    color: #2E7D32; /* Change this to your desired color */
 }

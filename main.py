@@ -8,7 +8,7 @@ from components.reports import render_reports
 
 # Page configuration
 st.set_page_config(
-    page_title="Personal Finance Manager",
+    page_title="Reality Tracker",
     page_icon="💰",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -26,7 +26,9 @@ def get_database():
 db = get_database()
 
 # Sidebar navigation
-st.sidebar.title("Navigation")
+st.sidebar.title("Reality Tracker")
+st.sidebar.markdown("Welcome to your personal finance manager!")
+st.sidebar.subheader("Navigation")
 page = st.sidebar.radio(
     "Go to",
     ["Dashboard", "Transactions", "Budget", "Reports", "Settings", "Savings Calculator", "Data Operations"]
@@ -107,4 +109,4 @@ else:
 
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.markdown("Made with ❤️ by Your Finance Manager")
+st.sidebar.markdown("All rights reserved &copy; 2025 . Application is build by TeluguReality.Org")
