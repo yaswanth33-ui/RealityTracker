@@ -39,8 +39,23 @@ def render_savings_calculator():
         months = int(years * 12)
         monthly_savings = calculate_monthly_savings(target_amount, current_savings, months, interest_rate)
         
+        if target_amount <= 0:
+            st.error("Target amount must be greater than zero")
+            return
+            
+        if years <= 0:
+            st.error("Time frame must be greater than zero")
+            return
+            
         if monthly_savings <= 0:
-            st.warning("Please check your input values. The calculation may not be possible with the current parameters.")
+            st.warning(f"""
+            The calculation is not possible with these parameters. This could be because:
+            - The target amount (${target_amount:,.2f}) is too close to current savings (${current_savings:,.2f})
+            - The time frame ({years:.1f} years) is too short
+            - The interest rate ({interest_rate:.1f}%) is too high
+            
+            Try adjusting these values to make the calculation possible.
+            """)
             return
             
         total_contributions = monthly_savings * months
