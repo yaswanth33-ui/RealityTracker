@@ -21,6 +21,35 @@ def calculate_monthly_savings(target_amount, current_savings, months, interest_r
 def render_savings_calculator():
     st.title("Savings Goal Calculator")
     
+    with st.expander("📖 How to Adjust Parameters", expanded=True):
+        st.markdown("""
+        **Guidelines for Parameter Adjustment:**
+        
+        1. **Target Amount** ($1,000+):
+           - For emergency fund: 3-6 months of expenses
+           - For major purchase: Full cost + 10% buffer
+           - For retirement: Based on desired annual income × years
+        
+        2. **Current Savings** ($0+):
+           - Enter your current balance
+           - Should be less than target amount
+           - Include all relevant savings/investments
+        
+        3. **Time Frame** (0.1-50 years):
+           - Short-term: 1-3 years
+           - Medium-term: 3-10 years
+           - Long-term: 10+ years
+           - Longer time = Lower monthly payments
+        
+        4. **Interest Rate** (0-30%):
+           - Savings Account: 1-2%
+           - High-yield Savings: 3-5%
+           - Conservative Investment: 6-8%
+           - Moderate Investment: 8-12%
+        
+        *Tip: If calculation fails, try increasing the time frame or reducing the target amount.*
+        """)
+    
     col1, col2 = st.columns(2)
     
     with col1:
