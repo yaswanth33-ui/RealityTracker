@@ -17,6 +17,28 @@ class Database:
         # Add tags column if it doesn't exist
         if 'tags' not in columns:
             self.conn.execute('ALTER TABLE transactions ADD COLUMN tags TEXT DEFAULT "[]"')
+            
+        # Create notification settings table if it doesn't exist
+        self.conn.execute('''
+        CREATE TABLE IF NOT EXISTS notification_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER DEFAULT 1,
+            budget_alert_threshold INTEGER DEFAULT 80,
+            goal_deadline_alert_days INTEGER DEFAULT 7,
+            email_notifications BOOLEAN DEFAULT 0,
+            email_address TEXT,
+            active BOOLEAN DEFAULT 1
+        )''')
+        
+        # Insert default settings if table is empty
+        cursor.execute("SELECT COUNT(*) FROM notification_settings")
+        if cursor.fetchone()[0] == 0:
+            self.conn.execute('''
+            INSERT INTO notification_settings 
+            (budget_alert_threshold, goal_deadline_alert_days, email_notifications, active) 
+            VALUES (80, 7, 0, 1)
+            ''')
+            self.conn.commit()
 
         # Create tables if they don't exist
         self.conn.execute('''
@@ -182,6 +204,20 @@ class Database:
 
     def get_financial_goals(self):
         return pd.read_sql_query('SELECT * FROM financial_goals', self.conn)
+        
+    def get_notification_settings(self):
+        return pd.read_sql_query('SELECT * FROM notification_settings WHERE active = 1 LIMIT 1', self.conn)
+        
+    def update_notification_settings(self, budget_threshold, goal_days, email_enabled, email_address=None):
+        self.conn.execute('''
+        UPDATE notification_settings 
+        SET budget_alert_threshold = ?, 
+            goal_deadline_alert_days = ?, 
+            email_notifications = ?,
+            email_address = ?
+        WHERE active = 1
+        ''', (budget_threshold, goal_days, 1 if email_enabled else 0, email_address))
+        self.conn.commit()
 
     def get_summary(self):
         df = self.get_transactions()

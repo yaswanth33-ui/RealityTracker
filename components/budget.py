@@ -3,6 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import pandas as pd
+from components.notifications import check_budget_alerts, render_alerts, check_financial_goal_alerts
 
 def validate_budget_goal(amount, category, existing_goals):
     if amount <= 0:
@@ -26,6 +27,18 @@ def validate_financial_goal(name, amount, target_date):
 
 def render_budget(db):
     st.title("Budget Planning")
+    
+    # Display budget alerts
+    budget_alerts = check_budget_alerts(db)
+    if budget_alerts:
+        st.subheader("Budget Alerts")
+        render_alerts(budget_alerts)
+    
+    # Display financial goal alerts
+    goal_alerts = check_financial_goal_alerts(db)
+    if goal_alerts:
+        st.subheader("Financial Goal Alerts")
+        render_alerts(goal_alerts)
 
     tab1, tab2 = st.tabs(["Budget Goals", "Financial Goals"])
 
