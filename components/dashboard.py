@@ -1,7 +1,8 @@
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from components.notifications import check_budget_alerts, render_alerts, check_financial_goal_alerts
 
 def render_dashboard(db):
