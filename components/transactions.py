@@ -52,14 +52,14 @@ def render_transactions(db):
             with col2:
                 amount = st.number_input("Amount", min_value=0.01, format="%.2f")
 
-                # Get filtered categories based on current transaction type
-                filtered_categories = get_filtered_categories(db, st.session_state.transaction_type)
+                # Get all categories instead of filtering by transaction type
+                all_categories = db.get_all_categories()
 
                 category = st.selectbox(
                     "Category",
-                    filtered_categories['name'].tolist(),
-                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}",
-                    key=f"category_select_{st.session_state.transaction_type}"  # Dynamic key based on type
+                    all_categories['name'].tolist(),
+                    format_func=lambda x: f"{all_categories[all_categories['name'] == x]['icon'].iloc[0]} {x}",
+                    key="category_select"  # Static key
                 )
 
             description = st.text_input("Description")
@@ -90,13 +90,13 @@ def render_transactions(db):
                 r_amount = st.number_input("Amount", min_value=0.01, format="%.2f", key="recurring_amount")
 
             with col2:
-                # Get filtered categories based on type
-                filtered_categories = get_filtered_categories(db, r_type)
+                # Get all categories instead of filtering by type
+                all_categories = db.get_all_categories()
 
                 r_category = st.selectbox(
                     "Category",
-                    filtered_categories['name'].tolist(),
-                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}",
+                    all_categories['name'].tolist(),
+                    format_func=lambda x: f"{all_categories[all_categories['name'] == x]['icon'].iloc[0]} {x}",
                     key="recurring_category"
                 )
                 frequency = st.selectbox("Frequency", ["Daily", "Weekly", "Monthly", "Yearly"])
