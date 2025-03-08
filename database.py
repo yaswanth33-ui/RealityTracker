@@ -55,6 +55,7 @@ class Database:
             type TEXT NOT NULL,
             icon TEXT,
             color TEXT,
+            description TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )''')
 
@@ -79,6 +80,49 @@ class Database:
 
         self.conn.commit()
 
+    def get_default_categories(self):
+        return [
+            {"name": "Salary", "type": "Income", "icon": "💰", "color": "#2E7D32"},
+            {"name": "Investment", "type": "Income", "icon": "📈", "color": "#1976D2"},
+            {"name": "Bonus", "type": "Income", "icon": "🎉", "color": "#4CAF50"},
+            {"name": "Food", "type": "Expense", "icon": "🍽️", "color": "#FF5722"},
+            {"name": "Transport", "type": "Expense", "icon": "🚗", "color": "#795548"},
+            {"name": "Housing", "type": "Expense", "icon": "🏠", "color": "#607D8B"},
+            {"name": "Utilities", "type": "Expense", "icon": "💡", "color": "#9E9E9E"},
+            {"name": "Entertainment", "type": "Expense", "icon": "🎮", "color": "#673AB7"},
+            {"name": "Shopping", "type": "Expense", "icon": "🛍️", "color": "#E91E63"},
+            {"name": "Healthcare", "type": "Expense", "icon": "🏥", "color": "#00BCD4"},
+            {"name": "Education", "type": "Expense", "icon": "📚", "color": "#3F51B5"},
+            {"name": "Savings", "type": "Expense", "icon": "🏦", "color": "#009688"},
+            {"name": "Other", "type": "Expense", "icon": "📝", "color": "#9E9E9E"}
+        ]
+
+    def add_custom_category(self, name, type, icon=None, color=None, description=None):
+        try:
+            self.conn.execute(
+                'INSERT INTO custom_categories (name, type, icon, color, description) VALUES (?, ?, ?, ?, ?)',
+                (name, type, icon, color, description)
+            )
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def get_custom_categories(self):
+        return pd.read_sql_query('SELECT * FROM custom_categories', self.conn)
+
+    def get_all_categories(self):
+        # Get default categories
+        default_categories = pd.DataFrame(self.get_default_categories())
+
+        # Get custom categories
+        custom_categories = self.get_custom_categories()
+        if not custom_categories.empty:
+            custom_categories = custom_categories[['name', 'type', 'icon', 'color']]
+            return pd.concat([default_categories, custom_categories], ignore_index=True)
+
+        return default_categories
+
     def add_transaction(self, date, type, category, amount, description, tags=None):
         tags_json = json.dumps(tags or [])
         self.conn.execute(
@@ -102,30 +146,6 @@ class Database:
         if not df.empty:
             df['tags'] = df['tags'].apply(lambda x: json.loads(x) if x else [])
         return df
-
-    def add_custom_category(self, name, type, icon=None, color=None):
-        try:
-            self.conn.execute(
-                'INSERT INTO custom_categories (name, type, icon, color) VALUES (?, ?, ?, ?)',
-                (name, type, icon, color)
-            )
-            self.conn.commit()
-            return True
-        except sqlite3.IntegrityError:
-            return False
-
-    def get_custom_categories(self):
-        return pd.read_sql_query('SELECT * FROM custom_categories', self.conn)
-
-    def get_all_categories(self):
-        custom_categories = self.get_custom_categories()
-        default_categories = pd.DataFrame({
-            'name': ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", 
-                    "Entertainment", "Shopping", "Healthcare", "Other"],
-            'type': ['Income', 'Income', 'Expense', 'Expense', 'Expense', 'Expense',
-                    'Expense', 'Expense', 'Expense', 'Expense']
-        })
-        return pd.concat([custom_categories[['name', 'type']], default_categories])
 
     def get_transactions(self):
         df = pd.read_sql_query('SELECT * FROM transactions', self.conn)

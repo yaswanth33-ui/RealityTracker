@@ -2,11 +2,41 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 
+def render_category_badge(icon, name, color):
+    st.markdown(
+        f"""
+        <div style="
+            display: inline-flex;
+            align-items: center;
+            background-color: {color}20;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin: 2px;
+        ">
+            <span style="margin-right: 4px">{icon}</span>
+            <span style="color: {color}">{name}</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+def validate_category(name, type, icon, color, description):
+    if not name.strip():
+        st.error("Category name cannot be empty")
+        return False
+    if not icon.strip():
+        st.error("Please select an icon")
+        return False
+    if len(name) > 50:
+        st.error("Category name is too long (maximum 50 characters)")
+        return False
+    return True
+
 def render_transactions(db):
     st.title("Transaction Management")
 
     # Tabs for different transaction types
-    tab1, tab2 = st.tabs(["Single Transaction", "Recurring Transaction"])
+    tab1, tab2, tab3 = st.tabs(["Single Transaction", "Recurring Transaction", "Categories"])
 
     with tab1:
         # Single Transaction Form
@@ -20,8 +50,14 @@ def render_transactions(db):
             with col2:
                 amount = st.number_input("Amount", min_value=0.01, format="%.2f")
                 categories = db.get_all_categories()
-                category_list = categories[categories['type'] == type]['name'].tolist()
-                category = st.selectbox("Category", category_list)
+                category_list = categories[categories['type'] == type]
+
+                # Display categories with icons
+                category = st.selectbox(
+                    "Category",
+                    category_list['name'].tolist(),
+                    format_func=lambda x: f"{category_list[category_list['name'] == x]['icon'].iloc[0]} {x}"
+                )
 
             description = st.text_input("Description")
             tags = st.text_input("Tags (comma-separated)", help="Add tags to better organize your transactions")
@@ -41,7 +77,7 @@ def render_transactions(db):
                     st.error(f"Error adding transaction: {str(e)}")
 
     with tab2:
-        # Recurring Transaction Form
+        # Recurring Transaction Form Implementation
         with st.form("recurring_transaction_form"):
             name = st.text_input("Transaction Name", help="A name to identify this recurring transaction")
 
@@ -52,8 +88,13 @@ def render_transactions(db):
 
             with col2:
                 categories = db.get_all_categories()
-                category_list = categories[categories['type'] == r_type]['name'].tolist()
-                r_category = st.selectbox("Category", category_list, key="recurring_category")
+                category_list = categories[categories['type'] == r_type]
+                r_category = st.selectbox(
+                    "Category",
+                    category_list['name'].tolist(),
+                    format_func=lambda x: f"{category_list[category_list['name'] == x]['icon'].iloc[0]} {x}",
+                    key="recurring_category"
+                )
                 frequency = st.selectbox("Frequency", ["Daily", "Weekly", "Monthly", "Yearly"])
 
             r_description = st.text_input("Description", key="recurring_description")
@@ -82,7 +123,49 @@ def render_transactions(db):
                 except Exception as e:
                     st.error(f"Error setting up recurring transaction: {str(e)}")
 
+    with tab3:
+        st.subheader("Category Management")
+
+        # Display existing categories
+        st.write("### Default Categories")
+        categories = db.get_all_categories()
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("Income Categories")
+            income_categories = categories[categories['type'] == 'Income']
+            for _, cat in income_categories.iterrows():
+                render_category_badge(cat['icon'], cat['name'], cat['color'])
+
+        with col2:
+            st.write("Expense Categories")
+            expense_categories = categories[categories['type'] == 'Expense']
+            for _, cat in expense_categories.iterrows():
+                render_category_badge(cat['icon'], cat['name'], cat['color'])
+
+        # Add custom category form
+        st.write("### Add Custom Category")
+        with st.form("category_form"):
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                cat_name = st.text_input("Category Name")
+            with col2:
+                cat_type = st.selectbox("Category Type", ["Income", "Expense"])
+            with col3:
+                cat_icon = st.text_input("Icon (emoji)", "💫")
+
+            cat_color = st.color_picker("Category Color", "#1976D2")
+            cat_description = st.text_area("Description (optional)")
+
+            if st.form_submit_button("Add Custom Category"):
+                if validate_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
+                    if db.add_custom_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
+                        st.success(f"Added new category: {cat_icon} {cat_name}")
+                    else:
+                        st.error("Category already exists!")
+
     # Transaction Filters
+    st.markdown("---")
     st.subheader("Transaction History")
 
     col1, col2, col3 = st.columns(3)
@@ -173,22 +256,4 @@ def render_transactions(db):
     else:
         st.info("No transactions recorded yet.")
 
-    # Custom Categories Management
-    st.subheader("Manage Categories")
-    with st.form("category_form"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            cat_name = st.text_input("Category Name")
-        with col2:
-            cat_type = st.selectbox("Category Type", ["Income", "Expense"])
-        with col3:
-            cat_color = st.color_picker("Category Color", "#1976D2")
-
-        if st.form_submit_button("Add Custom Category"):
-            if cat_name.strip():
-                if db.add_custom_category(cat_name, cat_type, color=cat_color):
-                    st.success(f"Added new category: {cat_name}")
-                else:
-                    st.error("Category already exists!")
-            else:
-                st.error("Category name cannot be empty!")
+    # Custom Categories Management (moved to tab3)
