@@ -58,11 +58,11 @@ def render_alerts(alerts):
     
     for alert in sorted_alerts:
         if alert['severity'] == 'high':
-            st.error(alert['message'])
+            st.markdown(f'<div class="stAlert alert-danger">{alert["message"]}</div>', unsafe_allow_html=True)
         elif alert['severity'] == 'medium':
-            st.warning(alert['message'])
+            st.markdown(f'<div class="stAlert alert-warning">{alert["message"]}</div>', unsafe_allow_html=True)
         else:
-            st.info(alert['message'])
+            st.markdown(f'<div class="stAlert alert-info">{alert["message"]}</div>', unsafe_allow_html=True)
 
 def check_financial_goal_alerts(db):
     """Check for financial goals deadline alerts"""

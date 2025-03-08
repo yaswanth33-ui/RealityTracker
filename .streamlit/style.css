@@ -25,3 +25,26 @@
 .gold-accent {
     color: #FFC107;
 }
+
+/* Notification styling */
+.stAlert {
+    border-radius: 8px;
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-left-width: 6px !important;
+}
+
+.stAlert.alert-danger {
+    background-color: rgba(255, 87, 87, 0.1);
+    border-left-color: #FF5757 !important;
+}
+
+.stAlert.alert-warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left-color: #FFC107 !important;
+}
+
+.stAlert.alert-info {
+    background-color: rgba(33, 150, 243, 0.1);
+    border-left-color: #2196F3 !important;
+}
