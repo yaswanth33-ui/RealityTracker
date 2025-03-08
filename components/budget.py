@@ -4,6 +4,26 @@ import plotly.graph_objects as go
 from datetime import datetime
 import pandas as pd
 
+def validate_budget_goal(amount, category, existing_goals):
+    if amount <= 0:
+        st.error("Budget amount must be greater than zero")
+        return False
+    if category in existing_goals['category'].values:
+        st.warning(f"Budget goal for {category} already exists. The existing goal will be updated.")
+    return True
+
+def validate_financial_goal(name, amount, target_date):
+    if not name.strip():
+        st.error("Goal name cannot be empty")
+        return False
+    if amount <= 0:
+        st.error("Target amount must be greater than zero")
+        return False
+    if target_date <= datetime.now().date():
+        st.error("Target date must be in the future")
+        return False
+    return True
+
 def render_budget(db):
     st.title("Budget Planning")
 
@@ -17,18 +37,20 @@ def render_budget(db):
             with col1:
                 category = st.selectbox(
                     "Category",
-                    ["Food", "Transport", "Housing", "Utilities", "Entertainment", "Other"]
+                    ["Food", "Transport", "Housing", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"]
                 )
 
             with col2:
                 amount = st.number_input("Monthly Budget Amount", min_value=0.01, format="%.2f")
 
             if st.form_submit_button("Set Budget"):
-                try:
-                    db.set_budget_goal(category, amount, 'monthly')
-                    st.success("Budget goal set successfully!")
-                except Exception as e:
-                    st.error(f"Error setting budget goal: {str(e)}")
+                budget_goals = db.get_budget_goals()
+                if validate_budget_goal(amount, category, budget_goals):
+                    try:
+                        db.set_budget_goal(category, amount, 'monthly')
+                        st.success("Budget goal set successfully!")
+                    except Exception as e:
+                        st.error(f"Error setting budget goal: {str(e)}")
 
         # Budget vs Actual
         st.subheader("Budget vs Actual Spending")
@@ -37,7 +59,6 @@ def render_budget(db):
         transactions = db.get_transactions()
 
         if not budget_goals.empty and not transactions.empty:
-            transactions['date'] = pd.to_datetime(transactions['date'])
             current_month = datetime.now().strftime("%Y-%m")
             monthly_expenses = transactions[
                 (transactions['type'] == 'Expense') &
@@ -66,9 +87,12 @@ def render_budget(db):
                     col1, col2 = st.columns([3, 1])
                     with col1:
                         progress = row['Percentage'] / 100
+                        color = 'red' if progress > 1 else 'normal'
                         st.progress(min(progress, 1.0))
                     with col2:
                         st.write(f"{row['category']}: ${row['Actual']:,.2f} / ${row['Budget']:,.2f}")
+                        if progress > 1:
+                            st.warning("⚠️ Over budget!")
 
                 # Detailed comparison chart
                 fig = go.Figure()
@@ -108,22 +132,34 @@ def render_budget(db):
 
         # Goal Setting Form
         with st.form("financial_goal_form"):
-            goal_name = st.text_input("Goal Name")
+            goal_name = st.text_input("Goal Name", placeholder="e.g., Emergency Fund, New Car")
             goal_amount = st.number_input("Target Amount", min_value=0.01, format="%.2f")
             goal_date = st.date_input("Target Date", min_value=datetime.now().date())
 
             if st.form_submit_button("Add Financial Goal"):
-                st.success("Financial goal added! (Feature coming soon)")
+                if validate_financial_goal(goal_name, goal_amount, goal_date):
+                    try:
+                        db.add_financial_goal(goal_name, goal_amount, goal_date.strftime("%Y-%m-%d"))
+                        st.success("Financial goal added successfully!")
+                    except Exception as e:
+                        st.error(f"Error adding financial goal: {str(e)}")
 
-        # Sample Goals Display
-        st.subheader("Your Goals")
-        goals = [
-            {"name": "Emergency Fund", "target": 10000, "current": 5000},
-            {"name": "New Car", "target": 25000, "current": 15000},
-        ]
-
-        for goal in goals:
-            progress = (goal["current"] / goal["target"]) * 100
-            st.write(f"### {goal['name']}")
-            st.progress(progress / 100)
-            st.write(f"${goal['current']:,.2f} of ${goal['target']:,.2f} ({progress:.1f}%)")
+        # Display Financial Goals
+        financial_goals = db.get_financial_goals()
+        if not financial_goals.empty:
+            st.subheader("Your Goals")
+            for _, goal in financial_goals.iterrows():
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    progress = (goal['current_amount'] / goal['target_amount']) * 100
+                    st.write(f"### {goal['name']}")
+                    st.progress(progress / 100)
+                    st.write(f"${goal['current_amount']:,.2f} of ${goal['target_amount']:,.2f} ({progress:.1f}%)")
+                with col2:
+                    days_left = (pd.to_datetime(goal['target_date']) - pd.Timestamp.now()).days
+                    st.write(f"Days left: {max(days_left, 0)}")
+                    if days_left < 0:
+                        st.warning("Goal overdue!")
+                st.markdown("---")
+        else:
+            st.info("Add your first financial goal to start tracking!")
