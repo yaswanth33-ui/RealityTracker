@@ -20,18 +20,6 @@ def render_category_badge(icon, name, color):
         unsafe_allow_html=True
     )
 
-def validate_category(name, type, icon, color, description):
-    if not name.strip():
-        st.error("Category name cannot be empty")
-        return False
-    if not icon.strip():
-        st.error("Please select an icon")
-        return False
-    if len(name) > 50:
-        st.error("Category name is too long (maximum 50 characters)")
-        return False
-    return True
-
 def get_filtered_categories(db, transaction_type):
     categories = db.get_all_categories()
     filtered_cats = categories[categories['type'] == transaction_type]
@@ -96,7 +84,7 @@ def render_transactions(db):
                 r_amount = st.number_input("Amount", min_value=0.01, format="%.2f", key="recurring_amount")
 
             with col2:
-                # Get filtered categories based on recurring type
+                # Get filtered categories based on type
                 filtered_categories = get_filtered_categories(db, r_type)
 
                 r_category = st.selectbox(
@@ -267,3 +255,15 @@ def render_transactions(db):
             st.line_chart(time_data)
     else:
         st.info("No transactions recorded yet.")
+
+def validate_category(name, type, icon, color, description):
+    if not name.strip():
+        st.error("Category name cannot be empty")
+        return False
+    if not icon.strip():
+        st.error("Please select an icon")
+        return False
+    if len(name) > 50:
+        st.error("Category name is too long (maximum 50 characters)")
+        return False
+    return True
