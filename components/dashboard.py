@@ -1,6 +1,33 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+
+def calculate_financial_health_score(income, expenses, savings, budget_adherence):
+    """Calculate financial health score based on various metrics"""
+    score = 0
+    
+    # Income to expense ratio (30 points)
+    if income > 0:
+        expense_ratio = expenses / income
+        if expense_ratio <= 0.5: score += 30
+        elif expense_ratio <= 0.7: score += 20
+        elif expense_ratio <= 0.9: score += 10
+    
+    # Savings rate (30 points)
+    if income > 0:
+        savings_rate = savings / income
+        if savings_rate >= 0.2: score += 30
+        elif savings_rate >= 0.1: score += 20
+        elif savings_rate > 0: score += 10
+    
+    # Budget adherence (40 points)
+    if budget_adherence >= 90: score += 40
+    elif budget_adherence >= 80: score += 30
+    elif budget_adherence >= 70: score += 20
+    elif budget_adherence >= 60: score += 10
+    
+    return score
+
 import pandas as pd
 from datetime import datetime, timedelta
 from components.notifications import check_budget_alerts, render_alerts, check_financial_goal_alerts
@@ -30,6 +57,46 @@ def render_dashboard(db):
 
     # Get summary data
     summary = db.get_summary()
+    
+    # Calculate financial health metrics
+    income = summary['total_income']
+    expenses = summary['total_expenses']
+    savings = income - expenses
+    
+    # Calculate budget adherence
+    budget_goals = db.get_budget_goals()
+    budget_adherence = 100
+    if not budget_goals.empty:
+        adherence_scores = []
+        for _, goal in budget_goals.iterrows():
+            actual = summary['categories'].get(goal['category'], 0)
+            if goal['amount'] > 0:
+                adherence = (1 - abs(actual - goal['amount']) / goal['amount']) * 100
+                adherence_scores.append(max(0, min(100, adherence)))
+        if adherence_scores:
+            budget_adherence = sum(adherence_scores) / len(adherence_scores)
+    
+    # Calculate health score
+    health_score = calculate_financial_health_score(income, expenses, savings, budget_adherence)
+    
+    # Display health score
+    st.subheader("Financial Health Score")
+    score_col1, score_col2 = st.columns([1, 3])
+    with score_col1:
+        st.markdown(f"""
+            <div style='text-align: center; padding: 1rem; background: linear-gradient(135deg, #4CAF50, #2196F3); border-radius: 10px;'>
+                <h1 style='color: white; margin: 0;'>{health_score}</h1>
+                <p style='color: white; margin: 0;'>/ 100</p>
+            </div>
+        """, unsafe_allow_html=True)
+    with score_col2:
+        st.markdown("### Score Breakdown")
+        st.markdown(f"- Income to Expense Ratio: {'Healthy' if expenses/income <= 0.7 else 'Needs Attention'}")
+        st.markdown(f"- Savings Rate: {(savings/income*100):.1f}%")
+        st.markdown(f"- Budget Adherence: {budget_adherence:.1f}%")
+    
+    st.markdown("---")
+    
     col1, col2, col3 = st.columns(3)
 
     with col1:
