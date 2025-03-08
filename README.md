@@ -49,21 +49,21 @@ You can install the required packages using:
 
 ```bash
 pip install -r requirements.txt
-
+```
 
 Running the Application
 To start the application, navigate to the project directory in your terminal and run:
 
 ```bash
 streamlit run main.py
-
+```
 Open your web browser and go to http://localhost:8501 (or http://0.0.0.0:8501 if needed for accessibility) to interact with the application.
 
 Contributing
 Contributions are welcome! If you wish to enhance the features or report any issues, please submit a pull request or open an issue.
 
 License
-This project is licensed under the MIT License. See the LICENSE file for more details.
+This project is licensed under the Apache License Version 2.0. See the LICENSE file for more details.
 
 Contact
 For any inquiries or support, please reach out at yaswanthreddypanem@gmail.com .
