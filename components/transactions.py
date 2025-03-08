@@ -17,10 +17,11 @@ def render_transactions(db):
             amount = st.number_input("Amount", min_value=0.01, format="%.2f")
             category = st.selectbox(
                 "Category",
-                ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Other"]
+                ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"]
             )
 
         description = st.text_input("Description")
+        tags = st.text_input("Tags (comma-separated)", help="Add tags to better organize your transactions")
 
         if st.form_submit_button("Add Transaction"):
             try:
@@ -29,7 +30,8 @@ def render_transactions(db):
                     type,
                     category,
                     amount,
-                    description
+                    description,
+                    tags.split(',') if tags else []
                 )
                 st.success("Transaction added successfully!")
             except Exception as e:
@@ -40,12 +42,12 @@ def render_transactions(db):
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        search_term = st.text_input("Search description", "")
+        search_term = st.text_input("Search description or tags", "")
     with col2:
         filter_type = st.multiselect("Filter by type", ["Income", "Expense"])
     with col3:
         filter_category = st.multiselect("Filter by category", 
-            ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Other"])
+            ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"])
 
     # Date range filter
     date_col1, date_col2 = st.columns(2)
@@ -62,7 +64,10 @@ def render_transactions(db):
         # Apply filters
         mask = (transactions['date'].dt.date >= start_date) & (transactions['date'].dt.date <= end_date)
         if search_term:
-            mask &= transactions['description'].str.contains(search_term, case=False, na=False)
+            mask &= (
+                transactions['description'].str.contains(search_term, case=False, na=False) |
+                transactions['tags'].apply(lambda x: any(search_term.lower() in tag.lower() for tag in x))
+            )
         if filter_type:
             mask &= transactions['type'].isin(filter_type)
         if filter_category:
@@ -83,10 +88,15 @@ def render_transactions(db):
             st.metric("Net Amount", f"${total_income - total_expenses:,.2f}")
 
         # Display transactions with formatting
+        def style_type(val):
+            return 'color: green' if val == 'Income' else 'color: red'
+
+        styled_df = filtered_transactions[['date', 'type', 'category', 'amount', 'description', 'tags']].copy()
+        styled_df['amount'] = styled_df['amount'].apply(lambda x: f"${x:,.2f}")
+        styled_df['tags'] = styled_df['tags'].apply(lambda x: ', '.join(x) if x else '')
+
         st.dataframe(
-            filtered_transactions[['date', 'type', 'category', 'amount', 'description']].style
-            .format({'amount': '${:,.2f}'})
-            .applymap(lambda x: 'color: green' if x == 'Income' else 'color: red', subset=['type']),
+            styled_df.style.map(style_type, subset=['type']),
             use_container_width=True,
             hide_index=True
         )
@@ -100,5 +110,22 @@ def render_transactions(db):
                 file_name=f"transactions_{datetime.now().strftime('%Y%m%d')}.csv",
                 mime="text/csv"
             )
+
+        # Show transaction statistics
+        st.subheader("Transaction Statistics")
+        stat_tab1, stat_tab2 = st.tabs(["Category Analysis", "Time Analysis"])
+
+        with stat_tab1:
+            cat_data = filtered_transactions.groupby('category')['amount'].agg(['sum', 'count']).reset_index()
+            cat_data.columns = ['Category', 'Total Amount', 'Number of Transactions']
+            st.dataframe(
+                cat_data.style.format({'Total Amount': '${:,.2f}'}),
+                use_container_width=True,
+                hide_index=True
+            )
+
+        with stat_tab2:
+            time_data = filtered_transactions.groupby(filtered_transactions['date'].dt.strftime('%Y-%m'))['amount'].sum()
+            st.line_chart(time_data)
     else:
         st.info("No transactions recorded yet.")
