@@ -39,23 +39,29 @@ def render_dashboard(db):
         # Monthly Trend
         st.subheader("Monthly Income vs Expenses")
         transactions['date'] = pd.to_datetime(transactions['date'])
-        monthly = transactions.set_index('date').resample('M').agg({
-            'amount': lambda x: pd.Series(x[transactions.loc[x.index, 'type'] == 'Income']).sum(),
-            'type': 'first'
-        }).fillna(0)
 
-        monthly_expenses = transactions[transactions['type'] == 'Expense'].set_index('date').resample('M')['amount'].sum()
+        # Calculate monthly trends separately for income and expenses
+        income_monthly = transactions[transactions['type'] == 'Income'].copy()
+        expense_monthly = transactions[transactions['type'] == 'Expense'].copy()
+
+        income_trend = income_monthly.groupby(income_monthly['date'].dt.strftime('%Y-%m'))['amount'].sum()
+        expense_trend = expense_monthly.groupby(expense_monthly['date'].dt.strftime('%Y-%m'))['amount'].sum()
+
+        # Combine all dates for complete timeline
+        all_dates = pd.Series(index=sorted(set(income_trend.index) | set(expense_trend.index))).fillna(0)
+        income_trend = income_trend.reindex(all_dates.index, fill_value=0)
+        expense_trend = expense_trend.reindex(all_dates.index, fill_value=0)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(
-            x=monthly.index,
-            y=monthly['amount'],
+            x=income_trend.index,
+            y=income_trend.values,
             name='Income',
             line=dict(color='#2E7D32', width=2)
         ))
         fig.add_trace(go.Scatter(
-            x=monthly_expenses.index,
-            y=monthly_expenses,
+            x=expense_trend.index,
+            y=expense_trend.values,
             name='Expenses',
             line=dict(color='#1976D2', width=2)
         ))
@@ -70,7 +76,7 @@ def render_dashboard(db):
 
         # Category Distribution
         st.subheader("Expense Distribution")
-        expenses = transactions[transactions['type'] == 'Expense']
+        expenses = transactions[transactions['type'] == 'Expense'].copy()
 
         # Time period selection for expenses
         period = st.select_slider(
@@ -101,8 +107,9 @@ def render_dashboard(db):
 
             with col1:
                 # Pie chart for categories
+                category_data = filtered_expenses.groupby('category')['amount'].sum().reset_index()
                 fig = px.pie(
-                    filtered_expenses,
+                    category_data,
                     values='amount',
                     names='category',
                     title='Expense Distribution by Category',
@@ -129,10 +136,23 @@ def render_dashboard(db):
 
             # Transaction tags word cloud
             st.subheader("Popular Transaction Tags")
-            all_tags = [tag for tags in filtered_expenses['tags'] for tag in tags]
+            all_tags = [tag for tags in filtered_expenses['tags'] for tag in tags if tags]
             if all_tags:
                 tag_counts = pd.Series(all_tags).value_counts()
                 st.write("Most used tags:", ", ".join(tag_counts.head().index))
+
+            # Summary statistics
+            st.subheader("Summary Statistics")
+            stats_col1, stats_col2, stats_col3 = st.columns(3)
+            with stats_col1:
+                avg_expense = filtered_expenses['amount'].mean()
+                st.metric("Average Expense", f"${avg_expense:.2f}")
+            with stats_col2:
+                total_expense = filtered_expenses['amount'].sum()
+                st.metric("Total Expenses", f"${total_expense:.2f}")
+            with stats_col3:
+                transaction_count = len(filtered_expenses)
+                st.metric("Number of Transactions", transaction_count)
 
         else:
             st.info("No expense data available for the selected period")

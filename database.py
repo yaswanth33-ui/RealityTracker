@@ -64,6 +64,8 @@ class Database:
         if not df.empty:
             # Convert tags from JSON string to list
             df['tags'] = df['tags'].apply(lambda x: json.loads(x) if x else [])
+            # Ensure date is in datetime format
+            df['date'] = pd.to_datetime(df['date'])
         return df
 
     def set_budget_goal(self, category, amount, period):
@@ -100,7 +102,8 @@ class Database:
                 'total_income': 0,
                 'total_expenses': 0,
                 'net_worth': 0,
-                'categories': {}
+                'categories': {},
+                'monthly_trends': {}
             }
 
         total_income = df[df['type'] == 'Income']['amount'].sum()
@@ -110,13 +113,19 @@ class Database:
         categories = df[df['type'] == 'Expense'].groupby('category')['amount'].sum().to_dict()
 
         # Calculate monthly trends
-        df['month'] = pd.to_datetime(df['date']).dt.strftime('%Y-%m')
-        monthly_trends = df.groupby(['month', 'type'])['amount'].sum().unstack(fill_value=0).to_dict('index')
+        monthly_data = {}
+        for type_ in ['Income', 'Expense']:
+            type_data = df[df['type'] == type_].copy()
+            if not type_data.empty:
+                monthly = type_data.groupby(type_data['date'].dt.strftime('%Y-%m'))['amount'].sum()
+                monthly_data[type_] = monthly.to_dict()
+            else:
+                monthly_data[type_] = {}
 
         return {
             'total_income': total_income,
             'total_expenses': total_expenses,
             'net_worth': total_income - total_expenses,
             'categories': categories,
-            'monthly_trends': monthly_trends
+            'monthly_trends': monthly_data
         }
