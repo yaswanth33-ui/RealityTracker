@@ -5,37 +5,82 @@ from datetime import datetime, timedelta
 def render_transactions(db):
     st.title("Transaction Management")
 
-    # Transaction Form
-    with st.form("transaction_form"):
-        col1, col2 = st.columns(2)
+    # Tabs for different transaction types
+    tab1, tab2 = st.tabs(["Single Transaction", "Recurring Transaction"])
 
-        with col1:
-            date = st.date_input("Date", datetime.now())
-            type = st.selectbox("Type", ["Income", "Expense"])
+    with tab1:
+        # Single Transaction Form
+        with st.form("transaction_form"):
+            col1, col2 = st.columns(2)
 
-        with col2:
-            amount = st.number_input("Amount", min_value=0.01, format="%.2f")
-            category = st.selectbox(
-                "Category",
-                ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"]
-            )
+            with col1:
+                date = st.date_input("Date", datetime.now())
+                type = st.selectbox("Type", ["Income", "Expense"])
 
-        description = st.text_input("Description")
-        tags = st.text_input("Tags (comma-separated)", help="Add tags to better organize your transactions")
+            with col2:
+                amount = st.number_input("Amount", min_value=0.01, format="%.2f")
+                categories = db.get_all_categories()
+                category_list = categories[categories['type'] == type]['name'].tolist()
+                category = st.selectbox("Category", category_list)
 
-        if st.form_submit_button("Add Transaction"):
-            try:
-                db.add_transaction(
-                    date.strftime("%Y-%m-%d"),
-                    type,
-                    category,
-                    amount,
-                    description,
-                    tags.split(',') if tags else []
-                )
-                st.success("Transaction added successfully!")
-            except Exception as e:
-                st.error(f"Error adding transaction: {str(e)}")
+            description = st.text_input("Description")
+            tags = st.text_input("Tags (comma-separated)", help="Add tags to better organize your transactions")
+
+            if st.form_submit_button("Add Transaction"):
+                try:
+                    db.add_transaction(
+                        date.strftime("%Y-%m-%d"),
+                        type,
+                        category,
+                        amount,
+                        description,
+                        tags.split(',') if tags else []
+                    )
+                    st.success("Transaction added successfully!")
+                except Exception as e:
+                    st.error(f"Error adding transaction: {str(e)}")
+
+    with tab2:
+        # Recurring Transaction Form
+        with st.form("recurring_transaction_form"):
+            name = st.text_input("Transaction Name", help="A name to identify this recurring transaction")
+
+            col1, col2 = st.columns(2)
+            with col1:
+                r_type = st.selectbox("Type", ["Income", "Expense"], key="recurring_type")
+                r_amount = st.number_input("Amount", min_value=0.01, format="%.2f", key="recurring_amount")
+
+            with col2:
+                categories = db.get_all_categories()
+                category_list = categories[categories['type'] == r_type]['name'].tolist()
+                r_category = st.selectbox("Category", category_list, key="recurring_category")
+                frequency = st.selectbox("Frequency", ["Daily", "Weekly", "Monthly", "Yearly"])
+
+            r_description = st.text_input("Description", key="recurring_description")
+            r_tags = st.text_input("Tags (comma-separated)", help="Add tags to better organize your transactions", key="recurring_tags")
+
+            col3, col4 = st.columns(2)
+            with col3:
+                start_date = st.date_input("Start Date", datetime.now())
+            with col4:
+                end_date = st.date_input("End Date (Optional)", None)
+
+            if st.form_submit_button("Set Up Recurring Transaction"):
+                try:
+                    db.add_recurring_transaction(
+                        name,
+                        r_type,
+                        r_category,
+                        r_amount,
+                        r_description,
+                        frequency,
+                        start_date.strftime("%Y-%m-%d"),
+                        end_date.strftime("%Y-%m-%d") if end_date else None,
+                        r_tags.split(',') if r_tags else []
+                    )
+                    st.success("Recurring transaction set up successfully!")
+                except Exception as e:
+                    st.error(f"Error setting up recurring transaction: {str(e)}")
 
     # Transaction Filters
     st.subheader("Transaction History")
@@ -46,8 +91,8 @@ def render_transactions(db):
     with col2:
         filter_type = st.multiselect("Filter by type", ["Income", "Expense"])
     with col3:
-        filter_category = st.multiselect("Filter by category", 
-            ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", "Entertainment", "Shopping", "Healthcare", "Other"])
+        all_categories = db.get_all_categories()
+        filter_category = st.multiselect("Filter by category", all_categories['name'].unique().tolist())
 
     # Date range filter
     date_col1, date_col2 = st.columns(2)
@@ -59,8 +104,6 @@ def render_transactions(db):
     # Get and filter transactions
     transactions = db.get_transactions()
     if not transactions.empty:
-        transactions['date'] = pd.to_datetime(transactions['date'])
-
         # Apply filters
         mask = (transactions['date'].dt.date >= start_date) & (transactions['date'].dt.date <= end_date)
         if search_term:
@@ -129,3 +172,23 @@ def render_transactions(db):
             st.line_chart(time_data)
     else:
         st.info("No transactions recorded yet.")
+
+    # Custom Categories Management
+    st.subheader("Manage Categories")
+    with st.form("category_form"):
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            cat_name = st.text_input("Category Name")
+        with col2:
+            cat_type = st.selectbox("Category Type", ["Income", "Expense"])
+        with col3:
+            cat_color = st.color_picker("Category Color", "#1976D2")
+
+        if st.form_submit_button("Add Custom Category"):
+            if cat_name.strip():
+                if db.add_custom_category(cat_name, cat_type, color=cat_color):
+                    st.success(f"Added new category: {cat_name}")
+                else:
+                    st.error("Category already exists!")
+            else:
+                st.error("Category name cannot be empty!")

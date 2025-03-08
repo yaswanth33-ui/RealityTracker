@@ -27,7 +27,35 @@ class Database:
             category TEXT NOT NULL,
             amount REAL NOT NULL,
             description TEXT,
-            tags TEXT DEFAULT '[]'
+            tags TEXT DEFAULT '[]',
+            recurring_id INTEGER,
+            FOREIGN KEY (recurring_id) REFERENCES recurring_transactions(id)
+        )''')
+
+        self.conn.execute('''
+        CREATE TABLE IF NOT EXISTS recurring_transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            type TEXT NOT NULL,
+            category TEXT NOT NULL,
+            amount REAL NOT NULL,
+            description TEXT,
+            frequency TEXT NOT NULL,
+            start_date TEXT NOT NULL,
+            end_date TEXT,
+            last_generated TEXT,
+            tags TEXT DEFAULT '[]',
+            active BOOLEAN DEFAULT 1
+        )''')
+
+        self.conn.execute('''
+        CREATE TABLE IF NOT EXISTS custom_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            type TEXT NOT NULL,
+            icon TEXT,
+            color TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )''')
 
         self.conn.execute('''
@@ -58,6 +86,46 @@ class Database:
             (date, type, category, amount, description, tags_json)
         )
         self.conn.commit()
+
+    def add_recurring_transaction(self, name, type, category, amount, description, frequency, start_date, end_date=None, tags=None):
+        tags_json = json.dumps(tags or [])
+        self.conn.execute(
+            '''INSERT INTO recurring_transactions 
+               (name, type, category, amount, description, frequency, start_date, end_date, tags)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (name, type, category, amount, description, frequency, start_date, end_date, tags_json)
+        )
+        self.conn.commit()
+
+    def get_recurring_transactions(self):
+        df = pd.read_sql_query('SELECT * FROM recurring_transactions WHERE active = 1', self.conn)
+        if not df.empty:
+            df['tags'] = df['tags'].apply(lambda x: json.loads(x) if x else [])
+        return df
+
+    def add_custom_category(self, name, type, icon=None, color=None):
+        try:
+            self.conn.execute(
+                'INSERT INTO custom_categories (name, type, icon, color) VALUES (?, ?, ?, ?)',
+                (name, type, icon, color)
+            )
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def get_custom_categories(self):
+        return pd.read_sql_query('SELECT * FROM custom_categories', self.conn)
+
+    def get_all_categories(self):
+        custom_categories = self.get_custom_categories()
+        default_categories = pd.DataFrame({
+            'name': ["Salary", "Investment", "Food", "Transport", "Housing", "Utilities", 
+                    "Entertainment", "Shopping", "Healthcare", "Other"],
+            'type': ['Income', 'Income', 'Expense', 'Expense', 'Expense', 'Expense',
+                    'Expense', 'Expense', 'Expense', 'Expense']
+        })
+        return pd.concat([custom_categories[['name', 'type']], default_categories])
 
     def get_transactions(self):
         df = pd.read_sql_query('SELECT * FROM transactions', self.conn)
