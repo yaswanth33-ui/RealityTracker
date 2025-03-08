@@ -92,6 +92,9 @@ def render_savings_calculator():
             if timeline:
                 df = pd.DataFrame(timeline)
                 
+                # Ensure values are finite
+                df['Balance'] = df['Balance'].clip(lower=0, upper=target_amount * 1.2)
+                
                 fig = px.line(
                     df,
                     x='Month',
@@ -101,8 +104,16 @@ def render_savings_calculator():
                 )
                 fig.update_layout(
                     showlegend=False,
-                    yaxis=dict(range=[0, target_amount * 1.1]),
-                    xaxis=dict(range=[0, months])
+                    yaxis=dict(
+                        range=[0, df['Balance'].max() * 1.1],
+                        tickformat='$,.0f'
+                    ),
+                    xaxis=dict(
+                        range=[0, months],
+                        tickmode='linear',
+                        dtick=max(1, months // 10)
+                    ),
+                    hovermode='x unified'
                 )
                 st.plotly_chart(fig, use_container_width=True)
                 
