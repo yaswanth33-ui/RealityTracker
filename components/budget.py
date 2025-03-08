@@ -27,13 +27,13 @@ def validate_financial_goal(name, amount, target_date):
 
 def render_budget(db):
     st.title("Budget Planning")
-    
+
     # Display budget alerts
     budget_alerts = check_budget_alerts(db)
     if budget_alerts:
         st.subheader("Budget Alerts")
         render_alerts(budget_alerts)
-    
+
     # Display financial goal alerts
     goal_alerts = check_financial_goal_alerts(db)
     if goal_alerts:

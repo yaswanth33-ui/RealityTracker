@@ -57,7 +57,9 @@ def render_alerts(alerts):
     ))
     
     for alert in sorted_alerts:
-        if alert['severity'] == 'high':
+        if alert.get('balanced', False):
+            st.markdown(f'<div class="stAlert alert-balanced">{alert["message"]}</div>', unsafe_allow_html=True)
+        elif alert['severity'] == 'high':
             st.markdown(f'<div class="stAlert alert-danger">{alert["message"]}</div>', unsafe_allow_html=True)
         elif alert['severity'] == 'medium':
             st.markdown(f'<div class="stAlert alert-warning">{alert["message"]}</div>', unsafe_allow_html=True)

@@ -51,3 +51,10 @@
     border-left-color: #00BCD4 !important;
     color: #0C5460;
 }
+
+.stAlert.alert-balanced {
+    background: linear-gradient(90deg, rgba(255, 152, 0, 0.1) 0%, rgba(76, 175, 80, 0.1) 100%);
+    border-left: 6px solid;
+    border-image: linear-gradient(to bottom, #FF9800, #4CAF50) 1;
+    color: #2E7D32;
+}
