@@ -32,31 +32,40 @@ def validate_category(name, type, icon, color, description):
         return False
     return True
 
+def get_filtered_categories(db, transaction_type):
+    categories = db.get_all_categories()
+    filtered_cats = categories[categories['type'] == transaction_type]
+    return filtered_cats
+
 def render_transactions(db):
     st.title("Transaction Management")
+
+    # Initialize session state for categories
+    if 'categories' not in st.session_state:
+        st.session_state.categories = db.get_all_categories()
 
     # Tabs for different transaction types
     tab1, tab2, tab3 = st.tabs(["Single Transaction", "Recurring Transaction", "Categories"])
 
     with tab1:
         # Single Transaction Form
-        with st.form("transaction_form"):
+        with st.form("transaction_form", clear_on_submit=True):
             col1, col2 = st.columns(2)
 
             with col1:
                 date = st.date_input("Date", datetime.now())
-                type = st.selectbox("Type", ["Income", "Expense"])
+                type = st.selectbox("Type", ["Income", "Expense"], key="transaction_type")
 
             with col2:
                 amount = st.number_input("Amount", min_value=0.01, format="%.2f")
-                categories = db.get_all_categories()
-                category_list = categories[categories['type'] == type]
 
-                # Display categories with icons
+                # Get filtered categories based on type
+                filtered_categories = get_filtered_categories(db, type)
+
                 category = st.selectbox(
                     "Category",
-                    category_list['name'].tolist(),
-                    format_func=lambda x: f"{category_list[category_list['name'] == x]['icon'].iloc[0]} {x}"
+                    filtered_categories['name'].tolist(),
+                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}"
                 )
 
             description = st.text_input("Description")
@@ -77,8 +86,8 @@ def render_transactions(db):
                     st.error(f"Error adding transaction: {str(e)}")
 
     with tab2:
-        # Recurring Transaction Form Implementation
-        with st.form("recurring_transaction_form"):
+        # Recurring Transaction Form
+        with st.form("recurring_transaction_form", clear_on_submit=True):
             name = st.text_input("Transaction Name", help="A name to identify this recurring transaction")
 
             col1, col2 = st.columns(2)
@@ -87,12 +96,13 @@ def render_transactions(db):
                 r_amount = st.number_input("Amount", min_value=0.01, format="%.2f", key="recurring_amount")
 
             with col2:
-                categories = db.get_all_categories()
-                category_list = categories[categories['type'] == r_type]
+                # Get filtered categories based on recurring type
+                filtered_categories = get_filtered_categories(db, r_type)
+
                 r_category = st.selectbox(
                     "Category",
-                    category_list['name'].tolist(),
-                    format_func=lambda x: f"{category_list[category_list['name'] == x]['icon'].iloc[0]} {x}",
+                    filtered_categories['name'].tolist(),
+                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}",
                     key="recurring_category"
                 )
                 frequency = st.selectbox("Frequency", ["Daily", "Weekly", "Monthly", "Yearly"])
@@ -128,7 +138,7 @@ def render_transactions(db):
 
         # Display existing categories
         st.write("### Default Categories")
-        categories = db.get_all_categories()
+        categories = st.session_state.categories
 
         col1, col2 = st.columns(2)
         with col1:
@@ -161,10 +171,13 @@ def render_transactions(db):
                 if validate_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
                     if db.add_custom_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
                         st.success(f"Added new category: {cat_icon} {cat_name}")
+                        # Update session state categories
+                        st.session_state.categories = db.get_all_categories()
+                        st.experimental_rerun()
                     else:
                         st.error("Category already exists!")
 
-    # Transaction Filters
+    # Transaction History
     st.markdown("---")
     st.subheader("Transaction History")
 
@@ -174,8 +187,7 @@ def render_transactions(db):
     with col2:
         filter_type = st.multiselect("Filter by type", ["Income", "Expense"])
     with col3:
-        all_categories = db.get_all_categories()
-        filter_category = st.multiselect("Filter by category", all_categories['name'].unique().tolist())
+        filter_category = st.multiselect("Filter by category", st.session_state.categories['name'].unique().tolist())
 
     # Date range filter
     date_col1, date_col2 = st.columns(2)
@@ -255,5 +267,3 @@ def render_transactions(db):
             st.line_chart(time_data)
     else:
         st.info("No transactions recorded yet.")
-
-    # Custom Categories Management (moved to tab3)
