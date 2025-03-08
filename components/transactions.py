@@ -22,15 +22,14 @@ def render_category_badge(icon, name, color):
 
 def get_filtered_categories(db, transaction_type):
     categories = db.get_all_categories()
-    filtered_cats = categories[categories['type'] == transaction_type]
-    return filtered_cats
+    return categories[categories['type'] == transaction_type]
 
 def render_transactions(db):
     st.title("Transaction Management")
 
-    # Initialize session state for categories
-    if 'categories' not in st.session_state:
-        st.session_state.categories = db.get_all_categories()
+    # Initialize session state for transaction type
+    if 'transaction_type' not in st.session_state:
+        st.session_state.transaction_type = "Income"
 
     # Tabs for different transaction types
     tab1, tab2, tab3 = st.tabs(["Single Transaction", "Recurring Transaction", "Categories"])
@@ -42,18 +41,25 @@ def render_transactions(db):
 
             with col1:
                 date = st.date_input("Date", datetime.now())
-                type = st.selectbox("Type", ["Income", "Expense"], key="transaction_type")
+                # Update transaction type in session state when changed
+                transaction_type = st.selectbox(
+                    "Type",
+                    ["Income", "Expense"],
+                    key="transaction_type_select"
+                )
+                st.session_state.transaction_type = transaction_type
 
             with col2:
                 amount = st.number_input("Amount", min_value=0.01, format="%.2f")
 
-                # Get filtered categories based on type
-                filtered_categories = get_filtered_categories(db, type)
+                # Get filtered categories based on current transaction type
+                filtered_categories = get_filtered_categories(db, st.session_state.transaction_type)
 
                 category = st.selectbox(
                     "Category",
                     filtered_categories['name'].tolist(),
-                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}"
+                    format_func=lambda x: f"{filtered_categories[filtered_categories['name'] == x]['icon'].iloc[0]} {x}",
+                    key=f"category_select_{st.session_state.transaction_type}"  # Dynamic key based on type
                 )
 
             description = st.text_input("Description")
@@ -63,7 +69,7 @@ def render_transactions(db):
                 try:
                     db.add_transaction(
                         date.strftime("%Y-%m-%d"),
-                        type,
+                        transaction_type,
                         category,
                         amount,
                         description,
@@ -126,7 +132,7 @@ def render_transactions(db):
 
         # Display existing categories
         st.write("### Default Categories")
-        categories = st.session_state.categories
+        categories = db.get_all_categories() # Removed reliance on session state here.
 
         col1, col2 = st.columns(2)
         with col1:
@@ -159,8 +165,7 @@ def render_transactions(db):
                 if validate_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
                     if db.add_custom_category(cat_name, cat_type, cat_icon, cat_color, cat_description):
                         st.success(f"Added new category: {cat_icon} {cat_name}")
-                        # Update session state categories
-                        st.session_state.categories = db.get_all_categories()
+                        # Update session state categories - not needed here anymore
                         st.experimental_rerun()
                     else:
                         st.error("Category already exists!")
@@ -175,7 +180,7 @@ def render_transactions(db):
     with col2:
         filter_type = st.multiselect("Filter by type", ["Income", "Expense"])
     with col3:
-        filter_category = st.multiselect("Filter by category", st.session_state.categories['name'].unique().tolist())
+        filter_category = st.multiselect("Filter by category", categories['name'].unique().tolist()) #Use db.get_all_categories() here
 
     # Date range filter
     date_col1, date_col2 = st.columns(2)
