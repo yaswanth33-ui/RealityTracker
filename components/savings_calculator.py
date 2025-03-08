@@ -24,12 +24,12 @@ def render_savings_calculator():
     col1, col2 = st.columns(2)
     
     with col1:
-        target_amount = st.number_input("Target Amount ($)", min_value=1000.0, value=10000.0, step=100.0)
-        current_savings = st.number_input("Current Savings ($)", min_value=0.0, value=0.0, step=100.0)
+        target_amount = st.number_input("Target Amount ($)", min_value=1000.0, value=50000.0, step=1000.0)
+        current_savings = st.number_input("Current Savings ($)", min_value=0.0, value=5000.0, step=1000.0)
     
     with col2:
-        years = st.number_input("Time Frame (Years)", min_value=0.1, max_value=50.0, value=1.0, step=0.5)
-        interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, max_value=30.0, value=2.0, step=0.1)
+        years = st.number_input("Time Frame (Years)", min_value=0.1, max_value=50.0, value=5.0, step=0.5)
+        interest_rate = st.number_input("Annual Interest Rate (%)", min_value=0.0, max_value=30.0, value=5.0, step=0.1)
     
     if st.button("Calculate Savings Plan", type="primary"):
         if target_amount <= current_savings:
