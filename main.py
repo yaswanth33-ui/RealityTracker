@@ -29,7 +29,7 @@ db = get_database()
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Go to",
-    ["Dashboard", "Transactions", "Budget", "Reports", "Settings", "Savings Calculator"]
+    ["Dashboard", "Transactions", "Budget", "Reports", "Settings", "Savings Calculator", "Data Operations"]
 )
 
 # Main content
@@ -44,6 +44,9 @@ elif page == "Reports":
 elif page == "Savings Calculator":
     from components.savings_calculator import render_savings_calculator
     render_savings_calculator()
+elif page == "Data Operations":
+    from components.data_operations import render_data_operations
+    render_data_operations(db)
 else:
     # Settings page
     st.title("Settings")
