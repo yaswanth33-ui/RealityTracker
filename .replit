@@ -35,8 +35,5 @@ args = "streamlit run main.py -- --server.port=8501"
 waitForPort = 8501
 
 [[ports]]
-localPort = 5000
-externalPort = 3000
-
-[[ports]]
 localPort = 8501
+externalPort = 80
