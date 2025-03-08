@@ -35,16 +35,19 @@
 }
 
 .stAlert.alert-danger {
-    background-color: rgba(255, 87, 87, 0.1);
-    border-left-color: #FF5757 !important;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left-color: #DC3545 !important;
+    color: #721C24;
 }
 
 .stAlert.alert-warning {
-    background-color: rgba(255, 193, 7, 0.1);
-    border-left-color: #FFC107 !important;
+    background-color: rgba(255, 152, 0, 0.1);
+    border-left-color: #FF9800 !important;
+    color: #856404;
 }
 
 .stAlert.alert-info {
-    background-color: rgba(33, 150, 243, 0.1);
-    border-left-color: #2196F3 !important;
+    background-color: rgba(0, 188, 212, 0.1);
+    border-left-color: #00BCD4 !important;
+    color: #0C5460;
 }
